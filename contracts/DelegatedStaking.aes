@@ -1,0 +1,26 @@
+include "./HCElection.aes"
+include "./StakingValidator.aes"
+include "./MainStaking.aes"
+
+payable contract DelegatedStaking =
+
+  record state =
+   { staking_validator : option(StakingValidator)
+   , main_staking : MainStaking
+   , stakes : map(address, int) }
+
+  stateful entrypoint init(main_staking : MainStaking) =
+    { staking_validator = None,
+      main_staking = main_staking,
+      stakes = {} }
+
+  payable stateful entrypoint register_validator() =
+    put(state{ staking_validator = Some(state.main_staking.new_validator(value = Call.value)) })
+
+  function get_staking_validator() =
+    switch(state.staking_validator)
+      Some(staking_validator) => staking_validator
+      None => abort("register_validator not yet called")
+
+  payable stateful entrypoint stake() =
+    state.main_staking.stake(value = Call.value, Contract.address)

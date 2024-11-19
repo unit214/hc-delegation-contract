@@ -1,0 +1,18 @@
+{
+  "name": "hc-delegation-contract",
+  "version": "0.0.1",
+  "description": "hyperchains delegation contract",
+  "scripts": {
+    "test": "mocha ./test/**/*.js --timeout 0 --exit"
+  },
+  "dependencies": {
+    "@aeternity/aepp-sdk": "^13.3.3"
+  },
+  "devDependencies": {
+    "@aeternity/aeproject": "^4.10.2",
+    "chai": "^4.5.0",
+    "chai-as-promised": "^7.1.2",
+    "mocha": "^10.7.3",
+    "prettier": "^3.3.3"
+  }
+}

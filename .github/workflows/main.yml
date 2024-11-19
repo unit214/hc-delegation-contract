@@ -1,0 +1,17 @@
+name: Compile and Test Contracts
+
+on: [push]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: npm install -g @aeternity/aeproject
+      - run: npm ci
+      - run: aeproject env
+      - run: aeproject test
