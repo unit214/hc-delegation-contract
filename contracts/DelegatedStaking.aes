@@ -7,20 +7,43 @@ payable contract DelegatedStaking =
   record state =
    { staking_validator : option(StakingValidator)
    , main_staking : MainStaking
+   , hc_election : HCElection
+   , last_known_epoch : int
+   , epoch_rewards : map((int * int), int)
+   , total_stake : int
    , stakes : map(address, int) }
 
-  stateful entrypoint init(main_staking : MainStaking) =
+  stateful entrypoint init(main_staking : MainStaking, hc_election : HCElection) =
     { staking_validator = None,
       main_staking = main_staking,
+      hc_election = hc_election,
+      last_known_epoch = 0,
+      epoch_rewards = {},
+      total_stake = 0,
       stakes = {} }
+
+  entrypoint get_state() = state
 
   payable stateful entrypoint register_validator() =
     put(state{ staking_validator = Some(state.main_staking.new_validator(value = Call.value)) })
+    update_epoch_rewards()
 
   function get_staking_validator() =
     switch(state.staking_validator)
       Some(staking_validator) => staking_validator
       None => abort("register_validator not yet called")
 
+  // we need to make sure to know the epoch a reward was paid for, as payouts are delayed and we need to distribute based on historic percentages
+  stateful entrypoint force_update_epoch_rewards() = update_epoch_rewards()
+  stateful function update_epoch_rewards() =
+    let epoch = state.hc_election.epoch()
+    if (state.last_known_epoch != epoch)
+      put(state{ epoch_rewards[(state.last_known_epoch, epoch)] = Contract.balance
+               , last_known_epoch = epoch }) //TODO actually balance diff
+    else ()
+
   payable stateful entrypoint stake() =
     state.main_staking.stake(value = Call.value, Contract.address)
+    put(state{ stakes[Call.caller = 0] @ previous_stake = previous_stake + Call.value
+             , total_stake @ previous_total_stake = previous_total_stake + Call.value })
+    update_epoch_rewards()

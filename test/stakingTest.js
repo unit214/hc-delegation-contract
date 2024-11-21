@@ -30,8 +30,12 @@ describe("StakingContract", () => {
     await hcElection.step_eoe(aeSdk.address, 0, 0, 0, false);
   }
 
-  async function getStakingState() {
+  async function getMainStakingState() {
     return mainStaking.get_state().then((res) => res.decodedResult);
+  }
+
+  async function getDelegatedStakingState() {
+    return delegatedStaking.get_state().then((res) => res.decodedResult);
   }
 
   before(async () => {
@@ -61,7 +65,10 @@ describe("StakingContract", () => {
         .replace("contract DelegatedStaking", "main contract DelegatedStaking"),
       fileSystem: utils.getFilesystem(DELEGATED_STAKING_CONTRACT_SOURCE),
     });
-    await delegatedStaking.init(mainStaking.$options.address, { amount: 10 });
+    await delegatedStaking.init(
+      mainStaking.$options.address,
+      hcElection.$options.address,
+    );
 
     await utils.createSnapshot(aeSdk);
   });
@@ -82,7 +89,7 @@ describe("StakingContract", () => {
 
   it("DelegatedStaking: register_validator", async () => {
     await delegatedStaking.register_validator({ amount: 10 });
-    console.log(JSON.stringify(await getStakingState(), null, 2));
+    console.log(await getMainStakingState());
   });
 
   it("MainStaking: reward", async () => {
@@ -93,11 +100,30 @@ describe("StakingContract", () => {
       },
     );
 
-    console.log(JSON.stringify(await getStakingState(), null, 2));
+    console.log(await getMainStakingState());
   });
 
   it("DelegatedStaking: stake", async () => {
+    console.log(await getDelegatedStakingState());
     await delegatedStaking.stake({ amount: 100 });
-    console.log(JSON.stringify(await getStakingState(), null, 2));
+    console.log(await getDelegatedStakingState());
+    await nextEpoch();
+    await delegatedStaking.stake({ amount: 100 });
+
+    console.log(await getDelegatedStakingState());
+    await nextEpoch();
+    console.log(
+      await aeSdk.getBalance(
+        delegatedStaking.$options.address.replace("ct_", "ak_"),
+      ),
+    );
+    await nextEpoch();
+    console.log(await getDelegatedStakingState());
+    await delegatedStaking.stake({ amount: 100 });
+    console.log(await getDelegatedStakingState());
+    await nextEpoch();
+    await delegatedStaking.force_update_epoch_rewards();
+    console.log(await getDelegatedStakingState());
+    console.log(await getMainStakingState());
   });
 });
