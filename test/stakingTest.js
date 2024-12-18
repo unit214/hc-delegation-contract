@@ -31,7 +31,10 @@ describe("StakingContract", () => {
     const height = await aeSdk.getHeight();
     const epochEnd = Number(epochInfo[1].start + epochInfo[1].length - 1n);
     await utils.awaitKeyBlocks(aeSdk, Number(epochEnd - height));
-    await hcElection.step_eoe(aeSdk.address, 0, 0, 0, false);
+    await hcElection.step_eoe(validator.publicKey, 0, 0, 0, false);
+    await hcElection.add_reward(await aeSdk.getHeight(), validator.publicKey, {
+      amount: 1000n,
+    });
   }
 
   async function getMainStakingState() {
@@ -96,17 +99,6 @@ describe("StakingContract", () => {
     assert.equal(getAfter.decodedResult, 2n);
   });
 
-  it("MainStaking: add_rewards", async () => {
-    const epoch = await hcElection
-      .epoch()
-      .then(({ decodedResult }) => decodedResult);
-    await mainStaking.add_rewards(epoch, [[validator.publicKey, 1000]], {
-      amount: 1000,
-    });
-
-    console.log(await getMainStakingState());
-  });
-
   it("DelegatedStaking: stake", async () => {
     console.log("getDelegatedStakingState", await getDelegatedStakingState());
     await delegatedStaking.delegate_stake({
@@ -141,12 +133,6 @@ describe("StakingContract", () => {
     for (const i of [...Array(20)]) {
       await nextEpoch();
     }
-    const epoch = await hcElection
-      .epoch()
-      .then(({ decodedResult }) => decodedResult);
-    await mainStaking.add_rewards(epoch, [[validator.publicKey, 10000]], {
-      amount: 10000,
-    });
   });
 
   it("DelegatedStaking: request_unstake_delegated_stakes", async () => {
@@ -158,12 +144,11 @@ describe("StakingContract", () => {
     });
     console.log(
       "getDelegatedStakingState",
-      util.inspect(
-        await getDelegatedStakingState(),
-        false,
-        null,
-        true /* enable colors */,
-      ),
+      util.inspect(await getDelegatedStakingState(), false, null, true),
+    );
+    console.log(
+      "getMainStakingState",
+      util.inspect(await getMainStakingState(), false, null, true),
     );
   });
 
@@ -176,12 +161,7 @@ describe("StakingContract", () => {
     });
     console.log(
       "getDelegatedStakingState",
-      util.inspect(
-        await getDelegatedStakingState(),
-        false,
-        null,
-        true /* enable colors */,
-      ),
+      util.inspect(await getDelegatedStakingState(), false, null, true),
     );
   });
 
@@ -191,12 +171,7 @@ describe("StakingContract", () => {
     });
     console.log(
       "getDelegatedStakingState",
-      util.inspect(
-        await getDelegatedStakingState(),
-        false,
-        null,
-        true /* enable colors */,
-      ),
+      util.inspect(await getDelegatedStakingState(), false, null, true),
     );
   });
 });
